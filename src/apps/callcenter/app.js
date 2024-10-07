@@ -641,6 +641,26 @@ var app = {
 		return formatted_data;
 	},
 
+	checkQueuesAndAgents: function(callback) {
+		var self = this;
+	
+		monster.parallel({
+			queues: function(parallelCallback) {
+				self.get_queues(function(queues) {
+					parallelCallback(null, queues);
+				});
+			},
+			agents: function(parallelCallback) {
+				self.get_agents(function(agents) {
+					parallelCallback(null, agents);
+				});
+			}
+		}, function(err, results) {
+			var hasQueuesOrAgents = results.queues.length > 0 || results.agents.length > 0;
+			callback(hasQueuesOrAgents);
+		});
+	},
+
 	render: function(_container) {
 		var self = this,
 		container = _container || $('#monster_content');
@@ -649,7 +669,18 @@ var app = {
 		self.accountId = monster.apps.auth.accountId;
 
 		self.clean_timers();
-		self.dashboardRender(_container);
+		//self.dashboardRender(_container);
+		// Check for queues and agents
+		self.checkQueuesAndAgents(function(hasQueuesOrAgents) {
+			if (hasQueuesOrAgents) {
+				self.dashboardRender(_container);
+			} else {
+				self.settingsRender(container, function() {
+					// Open first queue
+					$('#queues-list li:first-child a').click();
+				});
+			}
+		});
 	},
 
 	dashboardRender: function($container) {
